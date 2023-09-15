@@ -3,9 +3,10 @@
 #ifndef FractionalPID_H
 #define FractionalPID_H
 
-// for using simple in AeroShield project uncomment this
-// #include "sampling/SamplingCore.h"
-
+/*
+* FractionalPIDClass
+* created by Ales Jandera
+*/
 class FractionalPIDClass {  
   public:
     FractionalPIDClass();
@@ -15,6 +16,7 @@ class FractionalPIDClass {
     int memo(float r, double * c); // compute action without restrictions
     float compute(float err, float saturationMin, float saturationMax); //compute an action within the given boundaries
 
+    // initial setters
     void setKp(float Kp);
     void setKi(float Ki);
     void setKd(float Kd);
@@ -28,6 +30,7 @@ class FractionalPIDClass {
     void setESum(float eSum);
     void setU(float u);
 
+    // initial getters
     float getKp();
     float getKi();
     float getKd();
@@ -45,6 +48,7 @@ class FractionalPIDClass {
     void loadVariables(float err);   
     float constrainFloat(float x, float min_x, float max_x);
 
+    // define variables
     float Kp;
     float Ki;
     float Kd;

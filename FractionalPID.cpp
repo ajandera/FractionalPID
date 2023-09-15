@@ -1,6 +1,6 @@
 #include "FractionalPID.h"
 
-FractionalPIDClass::FractionalPIDClass(){ // base class constructor without parameters will be called automatically in child constructors 
+FractionalPIDClass::FractionalPIDClass() {
   Kp=1.0;
   Ki=1.0;
   Kd=1.0;
@@ -141,6 +141,7 @@ float FractionalPIDClass::compute(float err,float saturationMin,float saturation
   return getU();
 }
 
+// Implementing memory mechanism
 int FractionalPIDClass::memo(float r, double * c) {
   int m = 0;
   for (int i = 1; i < sizeof(c); i++){
@@ -149,6 +150,7 @@ int FractionalPIDClass::memo(float r, double * c) {
   return m;
 }
 
+// compute u
 float FractionalPIDClass::computeU(){
   float pre[] = {};
   float X[]  = {1};
@@ -156,6 +158,9 @@ float FractionalPIDClass::computeU(){
   double bc[]  = {};
   double bd[]  = {};
 
+  /*
+  * simulate compud function START
+  */ 
   for (int i=1; i <= 3; i++) {
     pre[i] = i;
   }
@@ -177,8 +182,13 @@ float FractionalPIDClass::computeU(){
   for (int i = 1; i <= sizeof(X2); i++) {
     bd[i] = X2[i-1] * X2[i];
   }
+  /*
+  * simulate compud function END
+  */
 
-  return (K0 + (1 - K0) * this->getE()) * (Kp * this->getE() + Ti * pow(Ts,lambda) * this->memo(this->getE(), bc) + Td * pow(Ts,-delta) * this->memo(this->getE(), bd));
+  // calculate the new u
+  return (K0 + (1 - K0) * this->getE()) * (Kp * this->getE() + Ti * pow(Ts,lambda) * this->memo(this->getE(), bc) 
+              + Td * pow(Ts,-delta) * this->memo(this->getE(), bd));
 }
 
 FractionalPIDClass FractionalPID; // Construct instance (define)
