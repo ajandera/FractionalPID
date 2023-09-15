@@ -10,4 +10,4 @@ This library example is basd on Matlab file exchange of prof. Ing. Ivo Petráš,
 
 Example implementation based on [Automationshield](http://www.automationshield.com) found in example/AeroShield.ino
 
-Instalable zip file with library for Arduino is in dist folder.
+To make an instalable zip file of the library easily download in a zip format from github and load it in the Arduino ide.
