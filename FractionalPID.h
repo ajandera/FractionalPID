@@ -12,8 +12,8 @@ class FractionalPIDClass {
     FractionalPIDClass();
 	
     float compute(float err); // compute action without restrictions
-    float computeU(); // compute action without restrictions
-    int memo(float r, double * c); // compute action without restrictions
+    float computeU(int k); // compute action without restrictions
+    int memo(float r, double * c, int k); // compute action without restrictions
     float compute(float err, float saturationMin, float saturationMax); //compute an action within the given boundaries
 
     // initial setters
@@ -27,7 +27,7 @@ class FractionalPIDClass {
     void setDelta(float delta);
     void setK0(float K0);
     void setE(float e);
-    void setESum(float eSum);
+    void setEHistory(float e);
     void setU(float u);
 
     // initial getters
@@ -41,7 +41,7 @@ class FractionalPIDClass {
     float getDelta();
     float getK0();
     float getE();
-    float getESum();
+    float getEHistory();
     float getU();
 	
   private:
@@ -60,7 +60,8 @@ class FractionalPIDClass {
     float K0; 
     float u;
     float e;
-    float eSum;
+    float eHistory[100];
+    int k;
 };
 extern FractionalPIDClass FractionalPID;
 #endif

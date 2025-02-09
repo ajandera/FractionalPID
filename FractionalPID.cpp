@@ -12,7 +12,8 @@ FractionalPIDClass::FractionalPIDClass() {
   K0=0.0;
   u=0;
   e=0;
-  eSum=0;
+  k=1;
+  for (int i = 0; i < 100; i++) eHistory[i] = 0;
 }
 
 void FractionalPIDClass::setKp(float Kp){
@@ -59,8 +60,11 @@ void FractionalPIDClass::setE(float e){
   this->e=e;
 }
 
-void FractionalPIDClass::setESum(float eSum){
-  this->eSum=eSum;
+void FractionalPIDClass::setEHistory(float err){
+  // Shift error history for fractional calculations
+  for (int i = 99; i > 0; i--) eHistory[i] = eHistory[i - 1];
+  // Store current error
+  eHistory[0] = err;
 }
 
 void FractionalPIDClass::setU(float u){
@@ -107,8 +111,8 @@ float FractionalPIDClass::getE(){
   return e;
 }
 
-float FractionalPIDClass::getESum(){
-  return eSum;
+float FractionalPIDClass::getEHistory(){
+  return eHistory;
 }
 
 float FractionalPIDClass::getU(){
@@ -126,7 +130,7 @@ float FractionalPIDClass::constrainFloat(float x, float min_x, float max_x){
 
 void FractionalPIDClass::loadVariables(float err){
   this->setE(err);
-  this->setESum(this->getESum()+err);
+  this->setEHistory(err);
 }
 
 float FractionalPIDClass::compute(float err){    
@@ -142,53 +146,34 @@ float FractionalPIDClass::compute(float err,float saturationMin,float saturation
 }
 
 // Implementing memory mechanism
-int FractionalPIDClass::memo(float r, double * c) {
-  int m = 0;
-  for (int i = 1; i < sizeof(c); i++){
-    m = m + c[i] * r;
+int FractionalPIDClass::memo(float r, double * c, int k) {
+  float temp = 0;
+  for (int j = 1; j < k; j++) {  
+      temp += c[j] * r[k - j];  
   }
-  return m;
+  return temp;
 }
 
 // compute u
-float FractionalPIDClass::computeU(){
-  float pre[] = {};
-  float X[]  = {1};
-  float X2[]  = {1};
-  double bc[]  = {};
-  double bd[]  = {};
-
-  /*
-  * simulate compud function START
-  */ 
-  for (int i=1; i <= 3; i++) {
-    pre[i] = i;
+float FractionalPIDClass::computeU(int k){
+  // Arrays for fractional coefficients
+  float bc[k], bd[k];
+    
+  // Compute fractional coefficients (bc and bd)
+  bc[0] = 1;
+  bd[0] = 1;
+  for (int i = 1; i < k; i++) {
+      bc[i] = bc[i - 1] * (1 - (-lambda + 1) / (i + 1));
+      bd[i] = bd[i - 1] * (1 - (delta + 1) / (i + 1));
   }
 
-  for (int j = 2; j < sizeof(pre); j++) {
-    X[j] = 1-((-lambda+1)/pre[j]);
-  }
+  // Compute control output
+    float nonlinear = (K0 + (1 - K0) * abs(this->getE()));
+    float proportional = Kp * e;
+    float integral = Ti * pow(Ts / 1000.0, lambda) * memo(this->getEHistory(), bc, k);
+    float derivative = Td * pow(Ts / 1000.0, -delta) * memo(this->getEHistory(), bd, k);
 
-  for (int c=2; c <= sizeof(pre); c++) {
-    X2[c] = 1-((-lambda+1)/pre[c]);
-  }
-
-  // do comprod for X
-  for (int i = 1; i <= sizeof(X); i++) {
-    bc[i] = X[i-1] * X[i];
-  }
-
-  // do comprod for X2
-  for (int i = 1; i <= sizeof(X2); i++) {
-    bd[i] = X2[i-1] * X2[i];
-  }
-  /*
-  * simulate compud function END
-  */
-
-  // calculate the new u
-  return (K0 + (1 - K0) * this->getE()) * (Kp * this->getE() + Ti * pow(Ts,lambda) * this->memo(this->getE(), bc) 
-              + Td * pow(Ts,-delta) * this->memo(this->getE(), bd));
+    return nonlinear * (proportional + integral + derivative);
 }
 
 FractionalPIDClass FractionalPID; // Construct instance (define)

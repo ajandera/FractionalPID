@@ -2,7 +2,7 @@
   Fractional PID example implementation
 
   Created by Ing. Ales Jandera.
-  Last update: 14.9.2023.
+  Last update: 9.2.2025.
 
   Depends on AeroShield
 
@@ -35,38 +35,42 @@
 #include "FractionalPID.h"            // Include fractional PID library
 
 #define MANUAL 0                      // Choose manual reference using potentiometer (1)  automatic reference trajectory (0) 
-#define KP 1.0                        // PID Kp constant
-#define TI 0.55                       // PID Ti constant
+#define KP 1                        // PID Kp constant
+#define TI 1.8182                       // PID Ti constant
 #define TD 0.25                       // PID Td constant
-#define LAMBDA 0.9                    // order of fractional integral for fractional PID
-#define DELTA 0.81                    // order of fractional derivative for fractional PID
-#define K0 0.0                        // K0 of the nonlinear function f(e(t))=K0+(1-K0)*|e(t)| is:
+#define LAMBDA 1                    // order of fractional integral for fractional PID
+#define DELTA 1                    // order of fractional derivative for fractional PID
 
 
-unsigned long Ts = 3;                 // Sampling period in milliseconds
-unsigned long k = 1;                  // Sample index
+unsigned long Ts = 5;                 // Sampling period in milliseconds
+//unsigned long k = 1;                  // Sample index
 bool nextStep = false;                // Flag for step function
 bool realTimeViolation = false;       // Flag for real-time sampling violation
 
 int i = 0;                            // Section counter
 int T = 1000;                         // Section length in ms
-float R[] = {55.0, 33.0, 85.0, 42.0, 68.0, 20.0, 45.0, 29.0, 19.0, 53.0, 33.0, 75.0, 25.0, 90.0}; // Reference trajectory
-float r = 0.0;                        // Reference (Wanted pendulum angle)
+float R[] = {50.0}; // Reference trajectory
+float r = 50.0;                        // Reference (Wanted pendulum angle)
 float y = 0.0;                        // Output (Current pendulum angle)
 float u = 0.0;                        // Input (motor power)
+int K0 =  1;                     // K0 of the nonlinear function f(e(t))=K0+(1-K0)*|e(t)| is:
+
+float Kp=1.0;
+float Ki=1.0;
+float Kd=0.7;
+float Ti=0.55;
+float Td=0.25;
+float lambda=0.6;
+float delta=0.5;
+float e=0.0;
+float e_history[100];  // Stores past error values for fractional differentiation
+int k = 1;  // Time step counter
 
 void setup() {                                  //  Setup - runs only once
-  Serial.begin(2000000);                        //  Begin serial communication
+  Serial.begin(115200);                        //  Begin serial communication
   AeroShield.begin();                           //  Initialise AeroShield board
   AeroShield.calibrate();                       //  Calibrate AeroShield board + store the 0° value of the pendulum
   Sampling.period(Ts * 1000);                   // Set sampling period in milliseconds
-  FractionalPID.setKp(KP);                      // Set Proportional constant
-  FractionalPID.setTi(TI);                      // Set Integral constant
-  FractionalPID.setTd(TD);                      // Set Derivative constant
-  FractionalPID.setTs(Sampling.samplingPeriod); // Set sampling period for PID
-  FractionalPID.setLambda(LAMBDA);              // Set sampling period for PID
-  FractionalPID.setDelta(DELTA);                // Set sampling period for PID
-  FractionalPID.setK0(K0);                      // Set sampling period for PID
   Sampling.interrupt(stepEnable);               // Set interrupt function
 }
 
@@ -93,20 +97,29 @@ void stepEnable() {                                // ISR
 
 void step() {                                    // Define step function
 
-#if MANUAL                                       // If Manual mode is active
-  r = AeroShield.referenceRead();                // Read reference from potentiometer
-#else                                            // If Automatic mode is active
-  if (i > (sizeof(R) / sizeof(R[0]))) {          // If at end of trajectory
-    analogWrite(5, 0);                           // Turn off the motor
-    while (1);                                   // Stop program execution
-  } else if (k % (T * i) == 0) {                 // If at the end of section
-    r = R[i];                                    // Progress in trajectory
-    i++;                                         // Increment section counter
-  }
-#endif
-  y = AeroShield.sensorRead();                    //  read pendulum angle in %
-  u = FractionalPID.compute(r - y, 0.0, 100.0);   // fractional PID
-  AeroShield.actuatorWrite(u);                    // Actuate
+  #if MANUAL                                       // If Manual mode is active
+    r = AeroShield.referenceRead();                // Read reference from potentiometer
+  #else 
+    // If Automatic mode is active
+    if (i > (sizeof(R) / sizeof(R[0]))) {          // If at end of trajectory
+      analogWrite(5, 0);                           // Turn off the motor
+      while (1);                                   // Stop program execution
+    } else if (k % (T * i) == 0) {                 // If at the end of section
+      r = R[i];                                    // Progress in trajectory
+      i++;                                         // Increment section counter
+    } 
+  #endif
 
+  y = AeroShield.sensorRead();    //  read pendulum angle in %
+  u = FractionalPID.compute(r - y, 0.0, 100.0);
+  AeroShield.actuatorWrite(u);                    // Actuate
   k++;                                            // Increment index
+}
+
+float constrainFloat(float x, float min_x, float max_x) {
+  if (x<=min_x)
+    return min_x;
+  else if (x>=max_x)
+    return max_x;
+  return x;
 }
